@@ -27,15 +27,17 @@ normalize (Problem silhouette skeleton) = Problem silhouette' skeleton'
           silhouette' = map (map (`sub` origin)) silhouette
           skeleton' = map (\(s, e) -> (s `sub` origin, e `sub` origin)) skeleton
 
-polygonColor = (209, 209, 111)
-holeColor = (0, 0, 0)
-skeletonColor = (154, 145, 27)
-gridColor = (120, 120, 120)
+polygonColor = (209, 209, 111, 100)
+holeColor = (0, 0, 0, 100)
+skeletonColor = (154, 145, 27, 100)
+gridColor = (120, 120, 120, 100)
+hullColor = (170, 80, 80, 10)
 
-setColor :: (Int, Int, Int) -> IO ()
-setColor (r, g, b) = GLUT.color $ GLUT.Color3 (fromIntegral r / 255.0 :: GLfloat)
+setColor :: (Int, Int, Int, Int) -> IO ()
+setColor (r, g, b, a) = GLUT.color $ GLUT.Color4 (fromIntegral r / 255.0 :: GLfloat)
                                               (fromIntegral g / 255.0)
                                               (fromIntegral b / 255.0)
+                                              (fromIntegral a / 100.0)
 
 vertex2 :: Real a => a -> a -> GLUT.Vertex2 GLfloat
 vertex2 x y = GLUT.Vertex2 (realToFrac x) (realToFrac y)
@@ -57,6 +59,11 @@ onDisplay (Problem silhouette skeleton) (minX, minY, maxX, maxY) = do
       forM_ [minY, minY + 1 .. maxY] $ \y -> do
         GLUT.vertex $ vertex2 (minX - eps) y
         GLUT.vertex $ vertex2 (maxX + eps) y
+
+    setColor hullColor
+    forM_ polygons $ \points -> do
+      GLUT.renderPrimitive GLUT.Polygon $ do
+        mapM_ (GLUT.vertex . toVertex) (convexHull points)
 
     setColor polygonColor
     forM_ polygons $ \points -> do
