@@ -47,12 +47,12 @@ ordPoints o p1 p2
         l1 = lengthSquared p1' 
         l2 = lengthSquared p2'
 
-convexHullImpl :: Bool -> Point -> Point -> Polygon -> Polygon
-convexHullImpl first o mp ps
-  | o == mp && not first = []
-  | otherwise = o:nps
-  where nps = convexHullImpl False (minimumBy (ordPoints o) ps) mp ps  
-
 convexHull :: Polygon -> Polygon
-convexHull ps = convexHullImpl True mp mp ps
-                where mp = minimum ps
+convexHull ps = foldl update [] (sortBy (ordPoints o) ps)
+    where o = minimum ps
+          update [] p = [p]
+          update [p1] p2 = [p2, p1]
+          update pss@(p2:p1:ps) p3 | cross u v >= 0 = p3:pss
+                                   | otherwise = update (p1:ps) p3
+              where v = p3 `sub` p2
+                    u = p2 `sub` p1
