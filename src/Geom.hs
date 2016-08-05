@@ -10,6 +10,7 @@ module Geom ( Point (..)
             ) where
 
 import Data.Ratio
+import Data.List
 
 data Point = Point { getX :: Rational
                    , getY :: Rational
@@ -35,25 +36,22 @@ getArea (origin:points) = sum $ zipWith area points (tail points)
 isCCW :: Polygon -> Bool
 isCCW polygon = (getArea polygon) > 0
 
-
-chooseNext :: Point -> [Point] -> Point
-chooseNext o [] = o
-chooseNext o (p1:ps)
-  | p2 == o = p1
-  | cr > 0 || (cr == 0 && len1 > len2) = p1
-  | otherwise = p2
-  where p2 = chooseNext o ps
-        p1' = sub p1 o
-        p2' = sub p2 o
-        cr = cross p1' p2'
-        len1 = lengthSquared p1'
-        len2 = lengthSquared p2'
+ordPoints :: Point -> Point -> Point -> Ordering
+ordPoints o p1 p2
+  | c > 0 = LT
+  | c < 0 = GT
+  | c == 0 = compare l2 l1
+  where p1' = p1 `sub` o
+        p2' = p2 `sub` o 
+        c = cross p1' p2'
+        l1 = lengthSquared p1' 
+        l2 = lengthSquared p2'
 
 convexHullImpl :: Bool -> Point -> Point -> Polygon -> Polygon
 convexHullImpl first o mp ps
   | o == mp && not first = []
   | otherwise = o:nps
-  where nps = convexHullImpl False (chooseNext o ps) mp ps
+  where nps = convexHullImpl False (minimumBy (ordPoints o) ps) mp ps  
 
 convexHull :: Polygon -> Polygon
 convexHull ps = convexHullImpl True mp mp ps
