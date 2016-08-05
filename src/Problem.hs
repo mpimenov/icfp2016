@@ -1,11 +1,14 @@
-module Main where
+module Problem ( Silhouette
+               , Skeleton
+               , Problem (..)
+               , nextProblem)
+    where
 
 import Control.Monad
-import Control.Monad.State
 import Data.Ratio
 import Geom
 import Tokenizer
-import qualified Data.ByteString.Lazy.Char8 as L
+
 
 type Silhouette = [Polygon]
 type Skeleton = [Segment]
@@ -35,9 +38,3 @@ nextProblem = do
   m <- nextInt
   skeleton <- replicateM m nextSegment
   return $ Problem silhouette skeleton
-
-main :: IO ()
-main = do
-  problem <- liftM (evalState nextProblem) getContents
-  print problem
-  
