@@ -27,11 +27,11 @@ normalize (Problem silhouette skeleton) = Problem silhouette' skeleton'
           silhouette' = map (map (`sub` origin)) silhouette
           skeleton' = map (\(s, e) -> (s `sub` origin, e `sub` origin)) skeleton
 
-polygonColor = (209, 209, 111, 100)
-holeColor = (0, 0, 0, 100)
-skeletonColor = (154, 145, 27, 100)
-gridColor = (120, 120, 120, 100)
-hullColor = (170, 80, 80, 10)
+polygonColor = (209, 209, 111, 80)
+holeColor = (0, 0, 0, 80)
+skeletonColor = (154, 145, 27, 80)
+gridColor = (120, 120, 120, 80)
+hullColor = (170, 80, 80, 40)
 
 setColor :: (Int, Int, Int, Int) -> IO ()
 setColor (r, g, b, a) = GLUT.color $ GLUT.Color4 (fromIntegral r / 255.0 :: GLfloat)
@@ -78,7 +78,7 @@ onDisplay (Problem silhouette skeleton) (minX, minY, maxX, maxY) = do
         GLUT.vertex $ toVertex e
 
     setColor hullColor
-    GLUT.renderPrimitive GLUT.LineLoop $ do
+    GLUT.renderPrimitive GLUT.Polygon $ do
       mapM_ (GLUT.vertex . toVertex) (convexHull . concat $ silhouette)
 
   GLUT.swapBuffers
@@ -110,7 +110,10 @@ main = do
       rect = (minX, minY, maxX, maxY)
 
   GLUT.initialWindowSize $= GLUT.Size 800 800
+  GLUT.initialDisplayMode $= [GLUT.DoubleBuffered]
   w <- GLUT.createWindow "ICFP2016"
+  GLUT.blend $= GLUT.Enabled
+  GLUT.blendFunc $= (GLUT.SrcAlpha, GLUT.OneMinusSrcAlpha) 
   GLUT.displayCallback $= onDisplay problem rect
   GLUT.reshapeCallback $= Just (onReshape rect)
   GLUT.keyboardCallback $= Just onKey
