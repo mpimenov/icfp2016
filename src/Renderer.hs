@@ -35,9 +35,9 @@ hullColor = (170, 80, 80, 10)
 
 setColor :: (Int, Int, Int, Int) -> IO ()
 setColor (r, g, b, a) = GLUT.color $ GLUT.Color4 (fromIntegral r / 255.0 :: GLfloat)
-                                              (fromIntegral g / 255.0)
-                                              (fromIntegral b / 255.0)
-                                              (fromIntegral a / 100.0)
+                                                 (fromIntegral g / 255.0)
+                                                 (fromIntegral b / 255.0)
+                                                 (fromIntegral a / 100.0)
 
 vertex2 :: Real a => a -> a -> GLUT.Vertex2 GLfloat
 vertex2 x y = GLUT.Vertex2 (realToFrac x) (realToFrac y)
@@ -61,9 +61,8 @@ onDisplay (Problem silhouette skeleton) (minX, minY, maxX, maxY) = do
         GLUT.vertex $ vertex2 (maxX + eps) y
 
     setColor hullColor
-    forM_ polygons $ \points -> do
-      GLUT.renderPrimitive GLUT.Polygon $ do
-        mapM_ (GLUT.vertex . toVertex) (convexHull points)
+    GLUT.renderPrimitive GLUT.Polygon $ do
+      mapM_ (GLUT.vertex . toVertex) (convexHull . concat $ silhouette)
 
     setColor polygonColor
     forM_ polygons $ \points -> do

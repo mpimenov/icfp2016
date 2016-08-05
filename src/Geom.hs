@@ -13,7 +13,7 @@ import Data.Ratio
 
 data Point = Point { getX :: Rational
                    , getY :: Rational
-                   } deriving (Eq, Show)
+                   } deriving (Eq, Show, Ord)
 
 sub :: Point -> Point -> Point
 sub (Point x1 y1) (Point x2 y2) = Point (x1 - x2) (y1 - y2)
@@ -48,21 +48,13 @@ chooseNext o (p1:ps)
         cr = cross p1' p2'
         len1 = lengthSquared p1'
         len2 = lengthSquared p2'
-        
-minPoint :: [Point] -> Point
-minPoint [] = (Point 100 100)
-minPoint (p:ps)
-  | (getX p) < (getX q) || ((getX p) == (getX q) && (getY p) < (getY q)) = p
-  | otherwise = q
-  where q = minPoint ps
-  
-  
-convexHullImpl :: Point -> Point -> Point -> Polygon -> Polygon
-convexHullImpl prev o mp ps
-  | o == mp && prev /= (Point 100 100) = []
+
+convexHullImpl :: Bool -> Point -> Point -> Polygon -> Polygon
+convexHullImpl first o mp ps
+  | o == mp && not first = []
   | otherwise = o:nps
-  where nps = convexHullImpl o (chooseNext o ps) mp ps
+  where nps = convexHullImpl False (chooseNext o ps) mp ps
 
 convexHull :: Polygon -> Polygon
-convexHull ps = convexHullImpl (Point 100 100) mp mp ps
-                where mp = minPoint ps
+convexHull ps = convexHullImpl True mp mp ps
+                where mp = minimum ps
