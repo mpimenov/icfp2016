@@ -12,6 +12,7 @@ import Data.Ratio
 data Token = Number Integer
            | Comma
            | Slash
+           | Minus
            | EOF
              deriving (Show, Eq)
 
@@ -23,12 +24,14 @@ eatToken css@(c:cs) | isSpace c = eatToken cs
                     | isDigit c = (Number $ read ts, hs)
                     | c == ',' = (Comma, cs)
                     | c == '/' = (Slash, cs)
+                    | c == '-' = (Minus, cs)
                     where (ts, hs) = span isDigit css
 
 ungetToken :: Token -> String -> String
 ungetToken (Number n) s = show n ++ s
 ungetToken Comma s = ',':s
 ungetToken Slash s = '/':s
+ungetToken Minus s = '-':s
 ungetToken EOF s = s
 
 nextToken :: Tokenizer Token
@@ -41,10 +44,15 @@ nextInt = do
 
 nextRational :: Tokenizer Rational
 nextRational = do
-  (Number n) <- nextToken
-  sep <- nextToken
-  case sep of
-    Slash -> do (Number d) <- nextToken
-                return $ n % d
-    _     -> do modify (ungetToken sep)
-                return $ n % 1
+  leading <- nextToken
+  case leading of
+    Minus -> do r <- nextRational
+                return $ -r
+    _     -> do modify (ungetToken leading)
+                (Number n) <- nextToken
+                sep <- nextToken
+                case sep of
+                  Slash -> do (Number d) <- nextToken
+                              return $ n % d
+                  _     -> do modify (ungetToken sep)
+                              return $ n % 1
