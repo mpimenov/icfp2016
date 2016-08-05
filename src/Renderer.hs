@@ -60,10 +60,6 @@ onDisplay (Problem silhouette skeleton) (minX, minY, maxX, maxY) = do
         GLUT.vertex $ vertex2 (minX - eps) y
         GLUT.vertex $ vertex2 (maxX + eps) y
 
-    setColor hullColor
-    GLUT.renderPrimitive GLUT.Polygon $ do
-      mapM_ (GLUT.vertex . toVertex) (convexHull . concat $ silhouette)
-
     setColor polygonColor
     forM_ polygons $ \points -> do
       GLUT.renderPrimitive GLUT.Polygon $ do
@@ -80,6 +76,10 @@ onDisplay (Problem silhouette skeleton) (minX, minY, maxX, maxY) = do
       forM_ skeleton $ \(s, e) -> do
         GLUT.vertex $ toVertex s
         GLUT.vertex $ toVertex e
+
+    setColor hullColor
+    GLUT.renderPrimitive GLUT.LineLoop $ do
+      mapM_ (GLUT.vertex . toVertex) (convexHull . concat $ silhouette)
 
   GLUT.swapBuffers
 
