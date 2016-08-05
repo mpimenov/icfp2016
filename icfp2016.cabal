@@ -12,11 +12,22 @@ category:            Web
 build-type:          Simple
 cabal-version:       >=1.10
 
-executable icfp2016
+executable solution
   hs-source-dirs:      src
-  main-is:             Main.hs
-  other-modules:       Geom, Tokenizer
+  main-is:             Solution.hs
+  other-modules:       Geom, Problem, Tokenizer
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
-                     , bytestring
                      , mtl
+  ghc-options:         -O2 -main-is Solution
+
+executable renderer
+  hs-source-dirs:      src
+  main-is:             Renderer.hs
+  other-modules:       Geom, Problem, Tokenizer
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , mtl
+                     , OpenGL
+                     , GLUT
+  ghc-options:         -fno-ghci-sandbox -main-is Renderer
