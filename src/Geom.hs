@@ -1,8 +1,10 @@
 module Geom ( Point (..)
             , Polygon
             , Segment
+            , cross
             , getArea
             , isCCW
+            , sub
             ) where
 
 import Data.Ratio
