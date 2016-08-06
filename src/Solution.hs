@@ -1,10 +1,8 @@
 module Solution where
 
-import Control.Monad
-import Control.Monad.State
-import Problem
+import Geom
 
-main :: IO ()
-main = do
-  problem <- liftM (evalState nextProblem) getContents
-  print problem
+type Facet = [Int]
+
+data Solution a = Solution [Point a] [Facet] [Point a]
+                deriving (Show)
