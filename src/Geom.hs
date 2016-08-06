@@ -78,30 +78,23 @@ sameSide (Line o d) a b | all (>= 0) pa && all (>= 0) pb = True
           pb = map (cross d . (`sub` o)) b
 
 scale :: (Num a) => Point a -> a -> Point a
-scale (Point x y) f = (Point (f * x) (f * y))
+scale (Point x y) f = Point (f * x) (f * y)
 
 mirrorPoint :: (Fractional a) => Line a -> Point a -> Point a
-mirrorPoint l p = add o ((scale proj 2) `sub` p')
-    where o = getOrigin l
-          v = getDirection l
-          p' = sub p o
-          proj = scale v ((dot p' v) / (dot v v))
+mirrorPoint (Line o d) p = ((scale proj 2) `sub` p') `add` o
+    where p' = p `sub` o
+          proj = scale d ((dot p' d) / (dot d d))
 
 mirror :: (Fractional a) => Line a -> Polygon a -> Polygon a
 mirror l p = map (mirrorPoint l) p
 
-lineToABC :: (Fractional q) => Line q -> (q, q, q)
-lineToABC l = (a, b, c)
-    where p1 = getOrigin l
-          p2 = (getOrigin l) `add` (getDirection l)
-          x1 = getX p1
-          y1 = getY p1
-          x2 = getX p2
-          y2 = getY p2
+lineToABC :: (Fractional a) => Line a -> (a, a, a)
+lineToABC (Line o d) = (a, b, c)
+    where (Point x1 y1) = o
+          (Point x2 y2) = o `add` d
           a = y1 - y2
           b = x2 - x1
           c = - a * x1 - b * y1
-
 
 data IntersectionResult a = Coincide
                           | Parallel
@@ -109,18 +102,13 @@ data IntersectionResult a = Coincide
                             deriving (Show, Eq)
 
 equalLines :: (Fractional a, Eq a) => Line a -> Line a -> Bool
-equalLines l1 l2 = (cross v1 v2) == 0 && (cross o1o2 v1) == 0
-    where o1 = getOrigin l1
-          v1 = getDirection l1
-          o2 = getOrigin l2
-          v2 = getDirection l2
-          o1o2 = sub o2 o1
+equalLines (Line o1 d1) (Line o2 d2) = (cross d1 d2) == 0 && (cross o1o2 d1) == 0
+    where o1o2 = o2 `sub` o1
 
 intersectLines :: (Fractional a, Eq a) => Line a -> Line a -> IntersectionResult a
-intersectLines l1 l2
-    | equalLines l1 l2 = Coincide
-    | d == 0           = Parallel
-    | otherwise        = Intersect (Point (dx / d) (-dy / d))
+intersectLines l1 l2 | equalLines l1 l2 = Coincide
+                     | d == 0           = Parallel
+                     | otherwise        = Intersect (Point (dx / d) (-dy / d))
         where (a1, b1, c1) = lineToABC l1
               (a2, b2, c2) = lineToABC l2
               d  = a1 * b2 - a2 * b1
@@ -128,13 +116,10 @@ intersectLines l1 l2
               dy = a1 * c2 - a2 * c1
 
 sidePointLine :: (Fractional a, Ord a) => Point a -> Line a -> Integer
-sidePointLine p l
-    | cr == 0   = 0
-    | cr > 0    = 1
-    | otherwise = -1
-    where o = getOrigin l
-          v = getDirection l
-          cr = cross (sub p o) v
+sidePointLine p (Line o d) | cr == 0   = 0
+                           | cr > 0    = 1
+                           | otherwise = -1
+    where cr = (p `sub` o) `cross` d
 
 getEdges :: (Num a) => Polygon a -> [(Point a, Point a)]
 getEdges [] = []
