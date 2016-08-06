@@ -27,7 +27,7 @@ holeColor = (0, 0, 0, 80)
 skeletonColor = (100, 100, 27, 80)
 gridColor = (120, 120, 120, 80)
 hullColor = (170, 80, 80, 40)
-wrappingColor = (0, 0, 255, 100)
+wrappingColor = (0, 0, 255, 40)
 
 setColor :: (Int, Int, Int, Int) -> IO ()
 setColor (r, g, b, a) = GLUT.color $ GLUT.Color4 (fromIntegral r / 255.0 :: GLfloat)
@@ -80,7 +80,7 @@ onDisplay rstate (Problem silhouette skeleton) (minX, minY, maxX, maxY) = do
     setColor wrappingColor
     facets <- liftM (map fst . wrapping) (readIORef rstate)
     forM_ facets $ \facet -> do
-      GLUT.renderPrimitive GLUT.LineLoop $ do
+      GLUT.renderPrimitive GLUT.Polygon $ do
         mapM_ (GLUT.vertex . toVertex) facet
 
   GLUT.swapBuffers
