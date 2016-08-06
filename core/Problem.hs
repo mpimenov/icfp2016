@@ -3,7 +3,8 @@ module Problem ( Silhouette
                , Problem (..)
                , ProblemR (..)
                , ProblemD (..)
-               , nextProblem)
+               , nextProblem
+               )
     where
 
 import Control.Monad
@@ -34,16 +35,10 @@ nextPolygon = do
 nextSegment :: Tokenizer SegmentR
 nextSegment = liftM2 (,) nextPoint nextPoint
 
-normalize :: (Problem Rational) -> (Problem Rational)
-normalize (Problem silhouette skeleton) = Problem silhouette' skeleton'
-    where (origin, _) = getBounds silhouette
-          silhouette' = map (map (`sub` origin)) silhouette
-          skeleton' = map (\(s, e) -> (s `sub` origin, e `sub` origin)) skeleton
-
 nextProblem :: Tokenizer (Problem Rational)
 nextProblem = do
   n <- nextInt
   silhouette <- replicateM n nextPolygon
   m <- nextInt
   skeleton <- replicateM m nextSegment
-  return . normalize $ Problem silhouette skeleton
+  return $ Problem silhouette skeleton
