@@ -1,42 +1,47 @@
-module Geom ( Point (..)
-            , Polygon
-            , Segment
-            , cross
-            , lengthSquared
-            , getArea
-            , isCCW
-            , sub
-            , convexHull
-            ) where
+module Geom where
 
-import Data.Ratio
 import Data.List
 
-data Point = Point { getX :: Rational
-                   , getY :: Rational
-                   } deriving (Eq, Show, Ord)
+data Point a = Point { getX :: a
+                     , getY :: a
+                     } deriving (Eq, Show, Ord)
 
-sub :: Point -> Point -> Point
+type PointR = Point Rational
+type PointD = Point Double
+
+data Line a = Line { getOrigin :: Point a
+                   , getDirection :: Point a
+                   } deriving (Eq, Show)
+
+type LineR = Line Rational
+type LineD = Line Double
+
+type Polygon a = [Point a]
+type PolygonR = Polygon Rational
+type PolygonD = Polygon Double
+
+type Segment a = (Point a, Point a)
+type SegmentR = Segment Rational
+type SegmentD = Segment Double
+
+sub :: (Num a) => Point a -> Point a -> Point a
 sub (Point x1 y1) (Point x2 y2) = Point (x1 - x2) (y1 - y2)
 
-cross :: Point -> Point -> Rational
+cross, dot :: (Num a) => Point a -> Point a -> a
 cross (Point x1 y1) (Point x2 y2) = x1 * y2 - x2 * y1
+dot (Point x1 y1) (Point x2 y2) = x1 * x2 + y1 * y2
 
-lengthSquared :: Point -> Rational
+lengthSquared :: (Num a) => Point a -> a
 lengthSquared (Point x y) = x * x + y * y
 
-type Polygon = [Point]
-
-type Segment = (Point, Point)
-
-getArea :: Polygon -> Rational
+getArea :: (Num a) => Polygon a -> a
 getArea (origin:points) = sum $ zipWith area points (tail points)
     where area p1 p2 = cross (p1 `sub` origin) (p2 `sub` origin)
 
-isCCW :: Polygon -> Bool
+isCCW :: (Num a, Ord a) => Polygon a -> Bool
 isCCW polygon = (getArea polygon) > 0
 
-ordPoints :: Point -> Point -> Point -> Ordering
+ordPoints :: (Num a, Ord a) => Point a -> Point a -> Point a -> Ordering
 ordPoints o p1 p2
   | c > 0 = LT
   | c < 0 = GT
@@ -47,7 +52,7 @@ ordPoints o p1 p2
         l1 = lengthSquared p1' 
         l2 = lengthSquared p2'
 
-convexHull :: Polygon -> Polygon
+convexHull :: (Num a, Ord a) => Polygon a -> Polygon a
 convexHull ps = foldl update [] (sortBy (ordPoints o) ps)
     where o = minimum ps
           update [] p = [p]

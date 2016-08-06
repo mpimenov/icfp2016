@@ -1,6 +1,8 @@
 module Problem ( Silhouette
                , Skeleton
                , Problem (..)
+               , ProblemR (..)
+               , ProblemD (..)
                , nextProblem)
     where
 
@@ -9,29 +11,30 @@ import Data.Ratio
 import Geom
 import Tokenizer
 
+type Silhouette a = [Polygon a]
+type Skeleton a = [Segment a]
 
-type Silhouette = [Polygon]
-type Skeleton = [Segment]
+data Problem a = Problem (Silhouette a) (Skeleton a)
+                 deriving (Show)
+type ProblemR = Problem Rational
+type ProblemD = Problem Double
 
-data Problem = Problem Silhouette Skeleton
-             deriving (Show)
-
-nextPoint :: Tokenizer Point
+nextPoint :: Tokenizer PointR
 nextPoint = do
   x <- nextRational
   Comma <- nextToken
   y <- nextRational
   return $ Point x y
 
-nextPolygon :: Tokenizer Polygon
+nextPolygon :: Tokenizer PolygonR
 nextPolygon = do
   n <- nextInt
   replicateM n nextPoint
 
-nextSegment :: Tokenizer Segment
+nextSegment :: Tokenizer SegmentR
 nextSegment = liftM2 (,) nextPoint nextPoint
 
-nextProblem :: Tokenizer Problem
+nextProblem :: Tokenizer (Problem Rational)
 nextProblem = do
   n <- nextInt
   silhouette <- replicateM n nextPolygon
