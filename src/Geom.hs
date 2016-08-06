@@ -30,7 +30,8 @@ segmentToLine (a, b) = Line { getOrigin = a
                             , getDirection = b `sub` a
                             }
 
-sub :: (Num a) => Point a -> Point a -> Point a
+add, sub :: (Num a) => Point a -> Point a -> Point a
+add (Point x1 y1) (Point x2 y2) = Point (x1 + x2) (y1 + y2)
 sub (Point x1 y1) (Point x2 y2) = Point (x1 - x2) (y1 - y2)
 
 cross, dot :: (Num a) => Point a -> Point a -> a
@@ -49,14 +50,14 @@ isCCW polygon = (getArea polygon) > 0
 
 ordPoints :: (Num a, Ord a) => Point a -> Point a -> Point a -> Ordering
 ordPoints o p1 p2
-  | c > 0 = LT
-  | c < 0 = GT
-  | c == 0 = compare l2 l1
-  where p1' = p1 `sub` o
-        p2' = p2 `sub` o 
-        c = cross p1' p2'
-        l1 = lengthSquared p1' 
-        l2 = lengthSquared p2'
+    | c > 0 = LT
+    | c < 0 = GT
+    | c == 0 = compare l1 l2
+    where p1' = p1 `sub` o
+          p2' = p2 `sub` o
+          c = cross p1' p2'
+          l1 = lengthSquared p1'
+          l2 = lengthSquared p2'
 
 convexHull :: (Num a, Ord a) => Polygon a -> Polygon a
 convexHull ps = foldl update [] (sortBy (ordPoints o) ps)
@@ -76,11 +77,99 @@ sameSide (Line o d) a b | all (>= 0) pa && all (>= 0) pb = True
     where pa = map (cross d . (`sub` o)) a
           pb = map (cross d . (`sub` o)) b
 
-cut :: (Num a, Fractional a) => Line a -> Polygon a -> [Polygon a]
-cut = undefined
+scale :: (Num a) => Point a -> a -> Point a
+scale (Point x y) f = (Point (f * x) (f * y))
 
-mirror :: (Num a, Fractional a) => Line a -> Polygon a -> Polygon a
-mirror = undefined
+mirrorPoint :: (Fractional a) => Line a -> Point a -> Point a
+mirrorPoint l p = add o ((scale proj 2) `sub` p')
+    where o = getOrigin l
+          v = getDirection l
+          p' = sub p o
+          proj = scale v ((dot p' v) / (dot v v))
 
+mirror :: (Fractional a) => Line a -> Polygon a -> Polygon a
+mirror l p = map (mirrorPoint l) p
+
+lineToABC :: (Fractional q) => Line q -> (q, q, q)
+lineToABC l = (a, b, c)
+    where p1 = getOrigin l
+          p2 = (getOrigin l) `add` (getDirection l)
+          x1 = getX p1
+          y1 = getY p1
+          x2 = getX p2
+          y2 = getY p2
+          a = y1 - y2
+          b = x2 - x1
+          c = - a * x1 - b * y1
+
+
+data IntersectionResult a = Coincide
+                          | Parallel
+                          | Intersect (Point a)
+                            deriving (Show, Eq)
+
+equalLines :: (Fractional a, Eq a) => Line a -> Line a -> Bool
+equalLines l1 l2 = (cross v1 v2) == 0 && (cross o1o2 v1) == 0
+    where o1 = getOrigin l1
+          v1 = getDirection l1
+          o2 = getOrigin l2
+          v2 = getDirection l2
+          o1o2 = sub o2 o1
+
+intersectLines :: (Fractional a, Eq a) => Line a -> Line a -> IntersectionResult a
+intersectLines l1 l2
+    | equalLines l1 l2 = Coincide
+    | d == 0           = Parallel
+    | otherwise        = Intersect (Point (dx / d) (-dy / d))
+        where (a1, b1, c1) = lineToABC l1
+              (a2, b2, c2) = lineToABC l2
+              d  = a1 * b2 - a2 * b1
+              dx = b1 * c2 - b2 * c1
+              dy = a1 * c2 - a2 * c1
+
+sidePointLine :: (Fractional a, Ord a) => Point a -> Line a -> Integer
+sidePointLine p l
+    | cr == 0   = 0
+    | cr > 0    = 1
+    | otherwise = -1
+    where o = getOrigin l
+          v = getDirection l
+          cr = cross (sub p o) v
+
+getEdges :: (Num a) => Polygon a -> [(Point a, Point a)]
+getEdges [] = []
+getEdges pss@(p:ps) = zip pss (ps ++ [p])
+
+cutImpl :: (Fractional a, Ord a, Show a) => Line a -> [(Point a, Point a)] -> (Polygon a, Polygon a)
+cutImpl l [] = ([], [])
+cutImpl l (e:es)
+    | s1 == 0             = (p1:pol1, p1:pol2)
+    | s1 > 0 && s2 >= 0   = (p1:pol1, pol2)
+    | s1 < 0 && s2 <= 0   = (pol1, p1:pol2)
+    | s1 > 0 && s2 < 0    = (int:p1:pol1, int:pol2)
+    | s1 < 0 && s2 > 0    = (int:pol1, int:p1:pol2)
+    | otherwise           = error $ "unhandled case in intersection " ++ (show p1) ++ " " ++ (show p2) ++ " " ++ (show l)
+    where p1 = fst e
+          p2 = snd e
+          s1 = sidePointLine p1 l
+          s2 = sidePointLine p2 l
+          (Intersect int) = intersectLines l (Line p1 (sub p2 p1))
+          (pol1, pol2) = cutImpl l es
+
+cut :: (Fractional a, Ord a, Show a) => Line a -> Polygon a -> [Polygon a]
+cut l p = filter ((/= 0) . getArea) [pol1, pol2]
+    where (pol1, pol2) = cutImpl l (getEdges p)
+
+testP1 = (Point 0 0) :: PointD
+testP2 = (Point 1 0)
+testP3 = (Point 1 1)
+testP4 = (Point 0 1)
+testL1 = (Line testP1 (sub testP2 testP1))
+testL2 = (Line testP2 (sub testP3 testP2))
+testL3 = (Line testP3 (sub testP4 testP3))
+testL4 = (Line testP4 (sub testP1 testP4))
+testL5 = (Line testP1 (sub testP3 testP1))
+testL6 = (Line testP2 (sub testP4 testP2))
+testPoly1 = [testP1, testP2, testP3, testP4]
 paper = [Point 0 0, Point 1 0, Point 1 1, Point 0 1] :: PolygonR
 sample = [Point 0 0, Point 1 0, Point (1 % 2) (1 % 2), Point 0 (1 % 2)] :: PolygonR
