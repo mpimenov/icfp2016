@@ -2,22 +2,28 @@ module Geom ( Point (..)
             , Polygon
             , Segment
             , cross
+            , lengthSquared
             , getArea
             , isCCW
             , sub
+            , convexHull
             ) where
 
 import Data.Ratio
+import Data.List
 
 data Point = Point { getX :: Rational
                    , getY :: Rational
-                   } deriving (Eq, Show)
+                   } deriving (Eq, Show, Ord)
 
 sub :: Point -> Point -> Point
 sub (Point x1 y1) (Point x2 y2) = Point (x1 - x2) (y1 - y2)
 
 cross :: Point -> Point -> Rational
 cross (Point x1 y1) (Point x2 y2) = x1 * y2 - x2 * y1
+
+lengthSquared :: Point -> Rational
+lengthSquared (Point x y) = x * x + y * y
 
 type Polygon = [Point]
 
@@ -29,3 +35,24 @@ getArea (origin:points) = sum $ zipWith area points (tail points)
 
 isCCW :: Polygon -> Bool
 isCCW polygon = (getArea polygon) > 0
+
+ordPoints :: Point -> Point -> Point -> Ordering
+ordPoints o p1 p2
+  | c > 0 = LT
+  | c < 0 = GT
+  | c == 0 = compare l2 l1
+  where p1' = p1 `sub` o
+        p2' = p2 `sub` o 
+        c = cross p1' p2'
+        l1 = lengthSquared p1' 
+        l2 = lengthSquared p2'
+
+convexHull :: Polygon -> Polygon
+convexHull ps = foldl update [] (sortBy (ordPoints o) ps)
+    where o = minimum ps
+          update [] p = [p]
+          update [p1] p2 = [p2, p1]
+          update pss@(p2:p1:ps) p3 | cross u v >= 0 = p3:pss
+                                   | otherwise = update (p1:ps) p3
+              where v = p3 `sub` p2
+                    u = p2 `sub` p1

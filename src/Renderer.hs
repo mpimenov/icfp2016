@@ -27,15 +27,17 @@ normalize (Problem silhouette skeleton) = Problem silhouette' skeleton'
           silhouette' = map (map (`sub` origin)) silhouette
           skeleton' = map (\(s, e) -> (s `sub` origin, e `sub` origin)) skeleton
 
-polygonColor = (209, 209, 111)
-holeColor = (0, 0, 0)
-skeletonColor = (154, 145, 27)
-gridColor = (120, 120, 120)
+polygonColor = (209, 209, 111, 80)
+holeColor = (0, 0, 0, 80)
+skeletonColor = (154, 145, 27, 80)
+gridColor = (120, 120, 120, 80)
+hullColor = (170, 80, 80, 40)
 
-setColor :: (Int, Int, Int) -> IO ()
-setColor (r, g, b) = GLUT.color $ GLUT.Color3 (fromIntegral r / 255.0 :: GLfloat)
-                                              (fromIntegral g / 255.0)
-                                              (fromIntegral b / 255.0)
+setColor :: (Int, Int, Int, Int) -> IO ()
+setColor (r, g, b, a) = GLUT.color $ GLUT.Color4 (fromIntegral r / 255.0 :: GLfloat)
+                                                 (fromIntegral g / 255.0)
+                                                 (fromIntegral b / 255.0)
+                                                 (fromIntegral a / 100.0)
 
 vertex2 :: Real a => a -> a -> GLUT.Vertex2 GLfloat
 vertex2 x y = GLUT.Vertex2 (realToFrac x) (realToFrac y)
@@ -75,6 +77,10 @@ onDisplay (Problem silhouette skeleton) (minX, minY, maxX, maxY) = do
         GLUT.vertex $ toVertex s
         GLUT.vertex $ toVertex e
 
+    setColor hullColor
+    GLUT.renderPrimitive GLUT.Polygon $ do
+      mapM_ (GLUT.vertex . toVertex) (convexHull . concat $ silhouette)
+
   GLUT.swapBuffers
 
 onReshape :: GLRect -> GLUT.ReshapeCallback
@@ -104,7 +110,10 @@ main = do
       rect = (minX, minY, maxX, maxY)
 
   GLUT.initialWindowSize $= GLUT.Size 800 800
+  GLUT.initialDisplayMode $= [GLUT.DoubleBuffered]
   w <- GLUT.createWindow "ICFP2016"
+  GLUT.blend $= GLUT.Enabled
+  GLUT.blendFunc $= (GLUT.SrcAlpha, GLUT.OneMinusSrcAlpha) 
   GLUT.displayCallback $= onDisplay problem rect
   GLUT.reshapeCallback $= Just (onReshape rect)
   GLUT.keyboardCallback $= Just onKey
