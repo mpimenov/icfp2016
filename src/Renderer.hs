@@ -9,19 +9,19 @@ import Graphics.UI.GLUT (($=), GLdouble, GLfloat)
 import Problem
 import qualified Graphics.UI.GLUT as GLUT
 
-type Bounds = (Point, Point)
+type Bounds = (PointR, PointR)
 type GLRect = (GLdouble, GLdouble, GLdouble, GLdouble)
 
 eps :: GLdouble
 eps = 0.1
 
-getBounds :: [Polygon] -> Bounds
+getBounds :: [PolygonR] -> Bounds
 getBounds polygons = (Point (minimum xs) (minimum ys), Point (maximum xs) (maximum ys))
     where points = concat polygons
           xs = map getX points
           ys = map getY points
 
-normalize :: Problem -> Problem
+normalize :: (Problem Rational) -> (Problem Rational)
 normalize (Problem silhouette skeleton) = Problem silhouette' skeleton'
     where (origin, _) = getBounds silhouette
           silhouette' = map (map (`sub` origin)) silhouette
@@ -29,7 +29,7 @@ normalize (Problem silhouette skeleton) = Problem silhouette' skeleton'
 
 polygonColor = (209, 209, 111, 80)
 holeColor = (0, 0, 0, 80)
-skeletonColor = (154, 145, 27, 80)
+skeletonColor = (100, 100, 27, 80)
 gridColor = (120, 120, 120, 80)
 hullColor = (170, 80, 80, 40)
 
@@ -42,7 +42,7 @@ setColor (r, g, b, a) = GLUT.color $ GLUT.Color4 (fromIntegral r / 255.0 :: GLfl
 vertex2 :: Real a => a -> a -> GLUT.Vertex2 GLfloat
 vertex2 x y = GLUT.Vertex2 (realToFrac x) (realToFrac y)
 
-onDisplay :: Problem -> GLRect -> GLUT.DisplayCallback
+onDisplay :: ProblemR -> GLRect -> GLUT.DisplayCallback
 onDisplay (Problem silhouette skeleton) (minX, minY, maxX, maxY) = do
   GLUT.clear [GLUT.ColorBuffer]
 
@@ -103,10 +103,10 @@ main = do
 
   problem@(Problem silhouette _) <- liftM (normalize . evalState nextProblem) getContents
   let bounds = getBounds silhouette
-      minX = realToFrac . floor . fromRational . getX $ fst bounds :: GLdouble
-      minY = realToFrac . floor . fromRational . getY $ fst bounds :: GLdouble
-      maxX = realToFrac . ceiling . fromRational . getX $ snd bounds :: GLdouble
-      maxY = realToFrac . ceiling . fromRational . getY $ snd bounds :: GLdouble
+      minX = realToFrac . floor . getX $ fst bounds :: GLdouble
+      minY = realToFrac . floor . getY $ fst bounds :: GLdouble
+      maxX = realToFrac . ceiling . getX $ snd bounds :: GLdouble
+      maxY = realToFrac . ceiling . getY $ snd bounds :: GLdouble
       rect = (minX, minY, maxX, maxY)
 
   GLUT.initialWindowSize $= GLUT.Size 800 800
