@@ -45,6 +45,12 @@ getArea :: (Num a) => Polygon a -> a
 getArea (origin:points) = sum $ zipWith area points (tail points)
     where area p1 p2 = cross (p1 `sub` origin) (p2 `sub` origin)
 
+getBounds :: (Ord a) => [Polygon a] -> (Point a, Point a)
+getBounds polygons = (Point (minimum xs) (minimum ys), Point (maximum xs) (maximum ys))
+    where points = concat polygons
+          xs = map getX points
+          ys = map getY points
+
 isCCW :: (Num a, Ord a) => Polygon a -> Bool
 isCCW polygon = (getArea polygon) > 0
 
