@@ -42,6 +42,7 @@ lengthSquared :: (Num a) => Point a -> a
 lengthSquared (Point x y) = x * x + y * y
 
 getArea :: (Num a) => Polygon a -> a
+getArea [] = 0
 getArea (origin:points) = sum $ zipWith area points (tail points)
     where area p1 p2 = cross (p1 `sub` origin) (p2 `sub` origin)
 

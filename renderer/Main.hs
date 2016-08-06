@@ -48,6 +48,7 @@ onDisplay rstate (Problem silhouette skeleton) (minX, minY, maxX, maxY) = do
     let (polygons, holes) = partition isCCW silhouette
 
     setColor gridColor
+    GLUT.lineWidth $= 1
     GLUT.renderPrimitive GLUT.Lines $ do
       forM_ [minX, minX + 1 .. maxX] $ \x -> do
         GLUT.vertex $ vertex2 x (minY - eps)
