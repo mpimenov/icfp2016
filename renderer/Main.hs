@@ -102,12 +102,18 @@ onKey rstate c p = do
     RState figure polygons <- readIORef rstate
     writeIORef rstate $ RState figure (step figure polygons)
   GLUT.postRedisplay Nothing
+
+normalize :: (Problem Rational) -> (Problem Rational)
+normalize (Problem silhouette skeleton) = Problem silhouette' skeleton'
+    where (origin, _) = getBounds silhouette
+          silhouette' = map (map (`sub` origin)) silhouette
+          skeleton' = map (\(s, e) -> (s `sub` origin, e `sub` origin)) skeleton
            
 main :: IO ()
 main = do
   GLUT.getArgsAndInitialize
 
-  problem@(Problem silhouette _) <- liftM (evalState nextProblem) getContents
+  problem@(Problem silhouette _) <- liftM (normalize . evalState nextProblem) getContents
   let bounds = getBounds silhouette
       minX = realToFrac . floor . getX $ fst bounds :: GLdouble
       minY = realToFrac . floor . getY $ fst bounds :: GLdouble

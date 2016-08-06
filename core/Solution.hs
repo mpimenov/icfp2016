@@ -36,4 +36,8 @@ mkSolution phs = Solution source facets destination
                         in map snd . sortUnique . concat $ map move polygons
 
 solve :: Problem Rational -> Solution Rational
-solve (Problem silhouette _) = mkSolution $ wrap (convexHull $ concat silhouette) paper
+solve (Problem silhouette _) = Solution source facets (map (add origin) destination)
+    where (origin, _) = getBounds silhouette
+          silhouette' = map (map (`sub` origin)) silhouette
+          Solution source facets destination =
+              mkSolution $ wrap (convexHull $ concat silhouette') paper

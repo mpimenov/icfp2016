@@ -23,9 +23,10 @@ printPoint = putStrLn . pointToString
 
 main :: IO ()
 main = do
-  (Problem silhouette _) <- liftM (evalState nextProblem) getContents
-  let (Solution source facets destination) =
-          mkSolution $ wrap (convexHull $ concat silhouette) paper
+  problem <- liftM (evalState nextProblem) getContents
+
+  let Solution source facets destination = solve problem
+
   print $ length source
   mapM_ printPoint source
 
