@@ -4,6 +4,7 @@ import Data.List
 import Data.Map (Map)
 import Folding
 import Geom
+import Problem
 import qualified Data.Map as M
 
 type Facet = [Int]
@@ -33,3 +34,6 @@ mkSolution phs = Solution source facets destination
           destination = let tags ph = map (table M.!) (fst ph)
                             move ph = zip (tags ph) (fst $ fold ph)
                         in map snd . sortUnique . concat $ map move polygons
+
+solve :: Problem Rational -> Solution Rational
+solve (Problem silhouette _) = mkSolution $ wrap (convexHull $ concat silhouette) paper
