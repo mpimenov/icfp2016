@@ -127,18 +127,16 @@ getEdges pss@(p:ps) = zip pss (ps ++ [p])
 
 cutImpl :: (Fractional a, Ord a, Show a) => Line a -> [(Point a, Point a)] -> (Polygon a, Polygon a)
 cutImpl l [] = ([], [])
-cutImpl l (e:es)
+cutImpl l ((p1, p2):es)
     | s1 == 0             = (p1:pol1, p1:pol2)
     | s1 > 0 && s2 >= 0   = (p1:pol1, pol2)
     | s1 < 0 && s2 <= 0   = (pol1, p1:pol2)
-    | s1 > 0 && s2 < 0    = (int:p1:pol1, int:pol2)
-    | s1 < 0 && s2 > 0    = (int:pol1, int:p1:pol2)
+    | s1 > 0 && s2 < 0    = (p1:int:pol1, int:pol2)
+    | s1 < 0 && s2 > 0    = (int:pol1, p1:int:pol2)
     | otherwise           = error $ "unhandled case in intersection " ++ (show p1) ++ " " ++ (show p2) ++ " " ++ (show l)
-    where p1 = fst e
-          p2 = snd e
-          s1 = sidePointLine p1 l
+    where s1 = sidePointLine p1 l
           s2 = sidePointLine p2 l
-          (Intersect int) = intersectLines l (Line p1 (sub p2 p1))
+          (Intersect int) = intersectLines l (segmentToLine (p1, p2))
           (pol1, pol2) = cutImpl l es
 
 cut :: (Fractional a, Ord a, Show a) => Line a -> Polygon a -> [Polygon a]
