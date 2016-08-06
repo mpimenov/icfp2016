@@ -1,4 +1,4 @@
-module Renderer where
+module Main where
 
 import Control.Monad
 import Control.Monad.State

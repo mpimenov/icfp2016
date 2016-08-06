@@ -1,6 +1,7 @@
 module Geom where
 
 import Data.List
+import Data.Ratio
 
 data Point a = Point { getX :: a
                      , getY :: a
@@ -23,6 +24,11 @@ type PolygonD = Polygon Double
 type Segment a = (Point a, Point a)
 type SegmentR = Segment Rational
 type SegmentD = Segment Double
+
+segmentToLine :: (Num a) => Segment a -> Line a
+segmentToLine (a, b) = Line { getOrigin = a
+                            , getDirection = b `sub` a
+                            }
 
 sub :: (Num a) => Point a -> Point a -> Point a
 sub (Point x1 y1) (Point x2 y2) = Point (x1 - x2) (y1 - y2)
@@ -61,3 +67,20 @@ convexHull ps = foldl update [] (sortBy (ordPoints o) ps)
                                    | otherwise = update (p1:ps) p3
               where v = p3 `sub` p2
                     u = p2 `sub` p1
+
+-- Checks whether two polygons are on the same side of the line.
+sameSide :: (Num a, Ord a) => Line a -> Polygon a -> Polygon a -> Bool
+sameSide (Line o d) a b | all (>= 0) pa && all (>= 0) pb = True
+                        | all (<= 0) pa && all (<= 0) pb = True
+                        | otherwise = False
+    where pa = map (cross d . (`sub` o)) a
+          pb = map (cross d . (`sub` o)) b
+
+cut :: (Num a, Fractional a) => Line a -> Polygon a -> [Polygon a]
+cut = undefined
+
+mirror :: (Num a, Fractional a) => Line a -> Polygon a -> Polygon a
+mirror = undefined
+
+paper = [Point 0 0, Point 1 0, Point 1 1, Point 0 1] :: PolygonR
+sample = [Point 0 0, Point 1 0, Point (1 % 2) (1 % 2), Point 0 (1 % 2)] :: PolygonR
