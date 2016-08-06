@@ -32,5 +32,4 @@ main = do
   print $ length facets
   forM_ facets $ \facet -> putStrLn . unwords $ map show (length facet:facet)
 
-  print $ length destination
   mapM_ printPoint destination
