@@ -22,18 +22,6 @@ data RState = RState { figure :: PolygonR
 eps :: GLdouble
 eps = 0.1
 
-getBounds :: [PolygonR] -> Bounds
-getBounds polygons = (Point (minimum xs) (minimum ys), Point (maximum xs) (maximum ys))
-    where points = concat polygons
-          xs = map getX points
-          ys = map getY points
-
-normalize :: (Problem Rational) -> (Problem Rational)
-normalize (Problem silhouette skeleton) = Problem silhouette' skeleton'
-    where (origin, _) = getBounds silhouette
-          silhouette' = map (map (`sub` origin)) silhouette
-          skeleton' = map (\(s, e) -> (s `sub` origin, e `sub` origin)) skeleton
-
 polygonColor = (209, 209, 111, 80)
 holeColor = (0, 0, 0, 80)
 skeletonColor = (100, 100, 27, 80)
@@ -118,7 +106,7 @@ main :: IO ()
 main = do
   GLUT.getArgsAndInitialize
 
-  problem@(Problem silhouette _) <- liftM (normalize . evalState nextProblem) getContents
+  problem@(Problem silhouette _) <- liftM (evalState nextProblem) getContents
   let bounds = getBounds silhouette
       minX = realToFrac . floor . getX $ fst bounds :: GLdouble
       minY = realToFrac . floor . getY $ fst bounds :: GLdouble
