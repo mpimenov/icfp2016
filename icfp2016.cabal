@@ -40,7 +40,7 @@ executable renderer
                      , GLUT
                      , icfp2016
   ghc-options:         -O2 -fno-ghci-sandbox
-  
+
 executable submitter
   hs-source-dirs:      submitter
   main-is:             Main.hs

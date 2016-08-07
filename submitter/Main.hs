@@ -1,20 +1,27 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import Control.Concurrent
+import Control.Exception
 import Control.Monad
 import Control.Monad.State
 import Data.Aeson
-import Data.Maybe
 import Data.List
-import qualified Data.ByteString.Lazy as L
+import Data.Maybe
+import Data.Ratio
+import System.Exit
+import System.IO
+import System.IO.Error
 import System.Process
 import Text.Printf
-import Control.Concurrent
-import Data.Ratio
+import qualified Data.ByteString.Lazy as L
+
+
 import Folding
 import Geom
 import Problem
 import Solution
+
                    
 data RankingItem = RankingItem { resemblance :: Double
                                , solution_size :: Int
@@ -117,68 +124,95 @@ problemIdsAndHashes :: [ProblemDesc] -> [(Int, String)]
 problemIdsAndHashes [] = []
 problemIdsAndHashes (p:ps) = (problem_id p, problem_spec_hash p):(problemIdsAndHashes ps)
 
-getSnapshots :: IO ()
-getSnapshots = callProcess "curl" [ "--compressed"
-                                  , "-L"
-                                  , "-H Expect:"
-                                  , "-H"
-                                  , "X-API-Key: 246-2a711bdbced516bc9ce8f3205b413a58"
-                                  , "http://2016sv.icfpcontest.org/api/snapshot/list"
-                                  ]
-                                  
-lookupBlob :: String -> IO String
-lookupBlob hash = readProcess "curl" [ "--compressed"
-                                     , "-L"
-                                     , "-H Expect:"
-                                     , "-H"
-                                     , "X-API-Key: 246-2a711bdbced516bc9ce8f3205b413a58"
-                                     , link
-                                     ] ""
-    where link = printf "http://2016sv.icfpcontest.org/api/blob/%s" hash
-    
+runCurl :: [String] -> IO String
+runCurl args = do
+    (status, stdout, stderr) <- readProcessWithExitCode "curl" args ""
+    case status of
+        ExitSuccess      -> return stdout
+        ExitFailure code -> fail $ "Can't run curl with args" ++ (show args) ++ "\nstderr:" ++ stderr ++ "\nexit code:" ++ (show code)
+
+getSnapshots :: IO String
+getSnapshots = do
+    runCurl [ "--compressed"
+             , "-L"
+             , "-H Expect:"
+             , "-H"
+             , printf "X-API-Key: %s" apiKey
+             , "http://2016sv.icfpcontest.org/api/snapshot/list"
+             ]
+
+
+tryRead :: String -> IO String
+tryRead filename = do
+    contents <- readFile filename
+    return contents
+
+handler :: IOError -> IO ()
+handler e
+    | isDoesNotExistError e =
+        case ioeGetFileName e of Just path -> putStrLn $ "File does not exist at: " ++ path
+                                 Nothing -> putStrLn "bad location"
+    | otherwise = ioError e
+
+
+lookupBlob :: Int -> String -> IO String
+lookupBlob id hash = do
+    --let filename = inputPath ++ (show id) ++ ".in"
+    --contents <- (tryRead `catch` handler)
+    runCurl [ "--compressed"
+            , "-L"
+            , "-H Expect:"
+            , "-H"
+            , printf "X-API-Key: %s" apiKey
+            , printf "http://2016sv.icfpcontest.org/api/blob/%s" hash
+            ]
+
 
 solveAndWriteToFile :: String -> IO ()
 solveAndWriteToFile input = do
-  let problem =  (evalState nextProblem) input
+  let problem  = (evalState nextProblem) input
   let solution = solve problem
-  writeFile "/tmp/solution.txt" (concat $ intersperse "\n" (toStrings solution))
+  writeFile tmpSolutionPath (concat $ intersperse "\n" (toStrings solution))
 
-runAndSubmitSolution :: (Int,String) -> IO ()
+runAndSubmitSolution :: (Int,String) -> IO String
 runAndSubmitSolution (id, hash) = do
-    inp <- lookupBlob hash
+    inp <- lookupBlob id hash
     solveAndWriteToFile inp
-    let problemIdStr = printf "problem_id=%d" id
-    callProcess "curl" [ "--compressed"
-                       , "-L"
-                       , "-H"
-                       , "Expect:"
-                       , "-H"
-                       , "X-API-Key: 246-2a711bdbced516bc9ce8f3205b413a58"
-                       , "-F"
-                       , problemIdStr
-                       , "-F"
-                       , "solution_spec=@/tmp/solution.txt"
-                       , "http://2016sv.icfpcontest.org/api/solution/submit"
-                       ]
-    putStrLn ""
+    result <- runCurl [ "--compressed"
+                      , "-L"
+                      , "-H"
+                      , "Expect:"
+                      , "-H"
+                      , printf "X-API-Key: %s" apiKey
+                      , "-F"
+                      , printf "problem_id=%d" id
+                      , "-F"
+                      , printf "solution_spec=@%s" tmpSolutionPath
+                      , "http://2016sv.icfpcontest.org/api/solution/submit"
+                      ]
     threadDelay 1000000
+    return result
 
 
-snapshotHash = "f8862c595bc6a7d7be83f5af363d5b88e6f27fad"
+apiKey = "246-2a711bdbced516bc9ce8f3205b413a58" :: String
+tmpSolutionPath = "/tmp/solution.txt" :: String
+--snapshotHash = "f8862c595bc6a7d7be83f5af363d5b88e6f27fad" :: String
+snapshotHash = "96a0615f81c77be7dbb5a7a40c8c0912c67d6841" :: String
+inputPath = "../input/" :: String
+
 
 main = do
-{-
-    a <- readJSON "/tmp/1.json" :: IO Snapshots
-    putStrLn $ show a
-    b <- readJSON "/tmp/2.json" :: IO Snapshot
-    putStrLn $ show (problemIdsAndHashes . problems $ b)
-    --getSnapshots
-    --lookupBlob "44f66105e0136a9ea0a4fa4b055c35318ed8840f"
-    runAndSubmitSolution 1
--}
-    --lookupBlob snapshotHash
+    --snapshots <- getSnapshots
+    --putStrLn $ show snapshots
+
+    --snap <- lookupBlob 0 snapshotHash
+    --putStrLn $ show snap
+
     snapshot <- readJSON "/tmp/snapshot.json" :: IO Snapshot
+    --putStrLn (show snapshot)
+
     let ps = problemIdsAndHashes . problems $ snapshot
-    
-    -- writeFile "/tmp/solution.txt" 
-    forM_ [100..1099] $ \x -> runAndSubmitSolution (ps!!x)
+    --putStrLn $ (show (length ps))
+    forM_ [1600..1800] $ \x -> do
+      s <- runAndSubmitSolution (ps!!x)
+      putStrLn s
