@@ -40,3 +40,15 @@ executable renderer
                      , GLUT
                      , icfp2016
   ghc-options:         -O2 -fno-ghci-sandbox
+
+executable submitter
+  hs-source-dirs:      submitter
+  main-is:             Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , mtl
+                     , aeson
+                     , bytestring
+                     , process
+                     , icfp2016
+  ghc-options:         -O2 -fno-ghci-sandbox
