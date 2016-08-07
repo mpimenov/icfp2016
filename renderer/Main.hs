@@ -9,6 +9,7 @@ import Folding
 import Geom
 import Graphics.UI.GLUT (($=), GLdouble, GLfloat)
 import Problem
+import Solution
 import qualified Graphics.UI.GLUT as GLUT
 
 type Bounds = (PointR, PointR)
@@ -104,10 +105,16 @@ onKey rstate c p = do
   GLUT.postRedisplay Nothing
 
 normalize :: (Problem Rational) -> (Problem Rational)
-normalize (Problem silhouette skeleton) = Problem silhouette' skeleton'
-    where (origin, _) = getBounds silhouette
-          silhouette' = map (map (`sub` origin)) silhouette
-          skeleton' = map (\(s, e) -> (s `sub` origin, e `sub` origin)) skeleton
+normalize (Problem silhouette skeleton) = Problem silhouette'' skeleton''
+    where ax@(Point a c) = getAxis silhouette
+          ay@(Point b d) = ort ax
+
+          to' (Point x y) = Point (x * a + y * c) (x * b + y * d)
+          silhouette' = map (map to') silhouette
+          (origin', _) = getBounds silhouette'
+          silhouette'' = map (map (`sub` origin')) silhouette'
+
+          skeleton'' = map (\(s, e) -> ((to' s) `sub` origin', (to' e) `sub` origin')) skeleton
            
 main :: IO ()
 main = do

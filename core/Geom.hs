@@ -34,6 +34,9 @@ add, sub :: (Num a) => Point a -> Point a -> Point a
 add (Point x1 y1) (Point x2 y2) = Point (x1 + x2) (y1 + y2)
 sub (Point x1 y1) (Point x2 y2) = Point (x1 - x2) (y1 - y2)
 
+ort :: (Num a) => Point a -> Point a
+ort (Point x y) = Point (-y) x
+
 cross, dot :: (Num a) => Point a -> Point a -> a
 cross (Point x1 y1) (Point x2 y2) = x1 * y2 - x2 * y1
 dot (Point x1 y1) (Point x2 y2) = x1 * x2 + y1 * y2
@@ -87,10 +90,14 @@ sameSide (Line o d) a b | all (>= 0) pa && all (>= 0) pb = True
 scale :: (Num a) => Point a -> a -> Point a
 scale (Point x y) f = Point (f * x) (f * y)
 
+-- Computes projection of |u| on |v|.
+proj :: (Fractional a) => Point a -> Point a -> Point a
+proj u v = scale v ((dot u v) / (dot v v))
+
 mirrorPoint :: (Fractional a) => Line a -> Point a -> Point a
-mirrorPoint (Line o d) p = ((scale proj 2) `sub` p') `add` o
+mirrorPoint (Line o d) p = (pr `sub` p') `add` o
     where p' = p `sub` o
-          proj = scale d ((dot p' d) / (dot d d))
+          pr = scale (p' `proj` d) 2
 
 mirror :: (Fractional a) => Line a -> Polygon a -> Polygon a
 mirror l p = map (mirrorPoint l) p
