@@ -6,6 +6,14 @@ import Geom
 -- Histroy of mirrors
 type History a = [Line a]
 
+stepLine :: (Fractional a, Ord a, Show a) => Line a -> [(Polygon a, History a)] -> [(Polygon a, History a)]
+stepLine l@(Line origin direction) polygons = concat $ map update polygons
+    where update (p, h) = map (make h) ps
+              where ps = cut l p
+                    inLHP = all (\p -> (cross direction (p `sub` origin)) >= 0)
+                    make h p | inLHP p = (p, h)
+                             | otherwise = (mirror l p, l : h)
+
 -- A single wrap step - selects a single polygon that can be folded to
 -- cover some part of |figure|, and performs that folding.
 step :: (Fractional a, Ord a, Show a) => Polygon a -> [(Polygon a, History a)] -> [(Polygon a, History a)]

@@ -3,20 +3,20 @@ module Main where
 import Control.Monad
 import Control.Monad.State
 import Data.Char (ord)
+import Data.Ratio
 import Data.IORef
 import Data.List (partition)
 import Folding
 import Geom
 import Graphics.UI.GLUT (($=), GLdouble, GLfloat)
-import Problem
 import Solution
 import qualified Graphics.UI.GLUT as GLUT
 
 type Bounds = (PointR, PointR)
 type GLRect = (GLdouble, GLdouble, GLdouble, GLdouble)
 
-data RState = RState { figure :: PolygonR
-                     , wrapping :: [(PolygonR, History Rational)]
+data RState = RState { wrapping :: [(PolygonR, History Rational)]
+                     , wrapLines :: [LineR]
                      }
               deriving (Show)
 
@@ -39,15 +39,13 @@ setColor (r, g, b, a) = GLUT.color $ GLUT.Color4 (fromIntegral r / 255.0 :: GLfl
 vertex2 :: Real a => a -> a -> GLUT.Vertex2 GLfloat
 vertex2 x y = GLUT.Vertex2 (realToFrac x) (realToFrac y)
 
-onDisplay :: IORef RState -> ProblemR -> GLRect -> GLUT.DisplayCallback
-onDisplay rstate (Problem silhouette skeleton) (minX, minY, maxX, maxY) = do
+onDisplay :: IORef RState -> GLRect -> GLUT.DisplayCallback
+onDisplay rstate (minX, minY, maxX, maxY) = do
   GLUT.clear [GLUT.ColorBuffer]
 
   let toVertex (Point x y) = vertex2 x y
 
   GLUT.preservingMatrix $ do
-    let (polygons, holes) = partition isCCW silhouette
-
     setColor gridColor
     GLUT.lineWidth $= 1
     GLUT.renderPrimitive GLUT.Lines $ do
@@ -57,28 +55,7 @@ onDisplay rstate (Problem silhouette skeleton) (minX, minY, maxX, maxY) = do
       forM_ [minY, minY + 1 .. maxY] $ \y -> do
         GLUT.vertex $ vertex2 (minX - eps) y
         GLUT.vertex $ vertex2 (maxX + eps) y
-
-    setColor polygonColor
-    forM_ polygons $ \points -> do
-      GLUT.renderPrimitive GLUT.Polygon $ do
-        mapM_ (GLUT.vertex . toVertex) points
-
-    setColor holeColor
-    forM_ holes $ \points -> do
-      GLUT.renderPrimitive GLUT.Polygon $ do
-        mapM_ (GLUT.vertex . toVertex) points
-
-    setColor skeletonColor
-    GLUT.lineWidth $= 5
-    GLUT.renderPrimitive GLUT.Lines $ do
-      forM_ skeleton $ \(s, e) -> do
-        GLUT.vertex $ toVertex s
-        GLUT.vertex $ toVertex e
-
-    setColor hullColor
-    GLUT.renderPrimitive GLUT.Polygon $ do
-      mapM_ (GLUT.vertex . toVertex) (convexHull . concat $ silhouette)
-
+    
     setColor wrappingColor
     facets <- liftM (map fst . wrapping) (readIORef rstate)
     forM_ facets $ \facet -> do
@@ -100,36 +77,30 @@ onKey :: IORef RState -> GLUT.KeyboardCallback
 onKey rstate c p = do
   when (ord c == 27) $ GLUT.leaveMainLoop
   when (c == 'w' || c == 'W') $ do
-    RState figure polygons <- readIORef rstate
-    writeIORef rstate $ RState figure (step figure polygons)
+    RState polygons wrapLines <- readIORef rstate
+    case wrapLines of
+      [] -> return ()
+      (l:ls) -> do let polygons' = stepLine l polygons
+                       solution = mkSolution polygons'
+                   putStrLn "Solution:"
+                   mapM_ putStrLn $ toStrings solution
+                   writeIORef rstate $ RState polygons' ls
   GLUT.postRedisplay Nothing
 
-normalize :: (Problem Rational) -> (Problem Rational)
-normalize (Problem silhouette skeleton) = Problem silhouette'' skeleton''
-    where ax@(Point a c) = getAxis silhouette
-          ay@(Point b d) = ort ax
-
-          to' (Point x y) = Point (x * a + y * c) (x * b + y * d)
-          silhouette' = map (map to') silhouette
-          (origin', _) = getBounds silhouette'
-          silhouette'' = map (map (`sub` origin')) silhouette'
-
-          skeleton'' = map (\(s, e) -> ((to' s) `sub` origin', (to' e) `sub` origin')) skeleton
-           
 main :: IO ()
 main = do
   GLUT.getArgsAndInitialize
 
-  problem@(Problem silhouette _) <- liftM (normalize . evalState nextProblem) getContents
-  let bounds = getBounds silhouette
-      minX = realToFrac . floor . getX $ fst bounds :: GLdouble
-      minY = realToFrac . floor . getY $ fst bounds :: GLdouble
-      maxX = realToFrac . ceiling . getX $ snd bounds :: GLdouble
-      maxY = realToFrac . ceiling . getY $ snd bounds :: GLdouble
+  let minX = (-2) :: GLdouble
+      minY = (-2) :: GLdouble
+      maxX = 2 :: GLdouble
+      maxY = 2 :: GLdouble
       rect = (minX, minY, maxX, maxY)
 
-  rstate <- newIORef $ RState { figure = (convexHull $ concat silhouette)
-                              , wrapping = [([Point 0 0, Point 1 0, Point 1 1, Point 0 1], [])]
+  rstate <- newIORef $ RState { wrapping = [([Point 0 0, Point 1 0, Point 1 1, Point 0 1], [])]
+                              , wrapLines = map (\x -> Line (Point 0 (x % 10))
+                                                            (Point ((x + 4) % 2) (2 % x)))
+                                            [3 .. 10]
                               }
 
   GLUT.initialWindowSize $= GLUT.Size 800 800
@@ -137,7 +108,7 @@ main = do
   w <- GLUT.createWindow "ICFP2016"
   GLUT.blend $= GLUT.Enabled
   GLUT.blendFunc $= (GLUT.SrcAlpha, GLUT.OneMinusSrcAlpha) 
-  GLUT.displayCallback $= onDisplay rstate problem rect
+  GLUT.displayCallback $= onDisplay rstate rect
   GLUT.reshapeCallback $= Just (onReshape rect)
   GLUT.keyboardCallback $= Just (onKey rstate)
   GLUT.mainLoop
