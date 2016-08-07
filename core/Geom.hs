@@ -74,8 +74,8 @@ convexHull ps = foldl update [] (sortBy (ordPoints o) ps)
     where o = minimum ps
           update [] p = [p]
           update [p1] p2 = [p2, p1]
-          update pss@(p2:p1:ps) p3 | cross u v >= 0 = p3:pss
-                                   | otherwise = update (p1:ps) p3
+          update pss@(p2:p1:ps) p3 | cross u v > 0 = p3:pss
+                                   | otherwise     = update (p1:ps) p3
               where v = p3 `sub` p2
                     u = p2 `sub` p1
 
